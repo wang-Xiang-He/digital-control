@@ -307,21 +307,23 @@ $$
 
 ### 1. 常用數列的 z 轉換（Table 2-3，一般取樣週期 $T$）
 
-取樣週期 $T$ 不應該被隱藏假設成 $1$——只要 $e(t)$ 是實際的連續時間訊號，取樣後的數列就是 $e(kT)$（時間軸上真正的間隔是 $T$ 秒），對應的 z 轉換也一定會顯式地含有 $T$（尤其是指數與三角函數項，$T$ 會出現在指數 $e^{-\alpha T}$ 或角度 $\omega T$ 裡）。下表把 $T$ 完整寫出：
+取樣週期 $T$ 不應該被隱藏假設成 $1$——只要 $e(t)$ 是實際的連續時間訊號，取樣後的數列就是 $e(kT)$（時間軸上真正的間隔是 $T$ 秒），對應的 z 轉換也一定會顯式地含有 $T$（尤其是指數與三角函數項，$T$ 會出現在指數 $e^{-\alpha T}$ 或角度 $\omega T$ 裡）。下表把每一列訊號的**三種面貌都列出來**：拉普拉斯轉換 $E(s)$（連續時間系統分析用）、取樣後的數列 $e(kT)$，以及對應的 z 轉換 $E(z)$——這也直接對應本節第 2 小節「由 s 域函數求 z 轉換」的查表法：只要拿到 $E(s)$ 的部分分式，就能逐項對照這張表換成 $E(z)$，不需要再重新推導一次：
 
-| 連續時間訊號 $e(t)$，$t\ge0$ | 取樣後數列 $e(kT)$ | z 轉換 $E(z)$ |
-|---|---|---|
-| $\delta(t)$ | $\delta(k)$ | $1$ |
-| （延遲 $n$ 個取樣） | $\delta(k-n)$ | $z^{-n}$ |
-| 單位步階 $u_s(t)$ | $1$ | $\dfrac{z}{z-1}$ |
-| $t$（斜坡） | $kT$ | $\dfrac{Tz}{(z-1)^2}$ |
-| $t^2$ | $(kT)^2$ | $\dfrac{T^2 z(z+1)}{(z-1)^3}$ |
-| $e^{-\alpha t}$ | $e^{-\alpha kT}$ | $\dfrac{z}{z-e^{-\alpha T}}$ |
-| $t\,e^{-\alpha t}$ | $kT\,e^{-\alpha kT}$ | $\dfrac{T\,e^{-\alpha T}z}{(z-e^{-\alpha T})^2}$ |
-| $\sin \omega t$ | $\sin \omega kT$ | $\dfrac{z\sin \omega T}{z^2-2z\cos \omega T+1}$ |
-| $\cos \omega t$ | $\cos \omega kT$ | $\dfrac{z(z-\cos \omega T)}{z^2-2z\cos \omega T+1}$ |
-| $e^{-\alpha t}\sin \omega t$ | $e^{-\alpha kT}\sin \omega kT$ | $\dfrac{z\,e^{-\alpha T}\sin \omega T}{z^2-2z\,e^{-\alpha T}\cos \omega T+e^{-2\alpha T}}$ |
-| $e^{-\alpha t}\cos \omega t$ | $e^{-\alpha kT}\cos \omega kT$ | $\dfrac{z^2-z\,e^{-\alpha T}\cos \omega T}{z^2-2z\,e^{-\alpha T}\cos \omega T+e^{-2\alpha T}}$ |
+| 拉普拉斯轉換 $E(s)$ | 連續時間訊號 $e(t)$，$t\ge0$ | 取樣後數列 $e(kT)$ | z 轉換 $E(z)$ |
+|---|---|---|---|
+| — | $\delta(t)$ | $\delta(k)$ | $1$ |
+| — | （延遲 $n$ 個取樣） | $\delta(k-n)$ | $z^{-n}$ |
+| $\dfrac{1}{s}$ | 單位步階 $u_s(t)$ | $1$ | $\dfrac{z}{z-1}$ |
+| $\dfrac{1}{s^2}$ | $t$（斜坡） | $kT$ | $\dfrac{Tz}{(z-1)^2}$ |
+| $\dfrac{2}{s^3}$ | $t^2$ | $(kT)^2$ | $\dfrac{T^2 z(z+1)}{(z-1)^3}$ |
+| $\dfrac{1}{s+\alpha}$ | $e^{-\alpha t}$ | $e^{-\alpha kT}$ | $\dfrac{z}{z-e^{-\alpha T}}$ |
+| $\dfrac{1}{(s+\alpha)^2}$ | $t\,e^{-\alpha t}$ | $kT\,e^{-\alpha kT}$ | $\dfrac{T\,e^{-\alpha T}z}{(z-e^{-\alpha T})^2}$ |
+| $\dfrac{\omega}{s^2+\omega^2}$ | $\sin \omega t$ | $\sin \omega kT$ | $\dfrac{z\sin \omega T}{z^2-2z\cos \omega T+1}$ |
+| $\dfrac{s}{s^2+\omega^2}$ | $\cos \omega t$ | $\cos \omega kT$ | $\dfrac{z(z-\cos \omega T)}{z^2-2z\cos \omega T+1}$ |
+| $\dfrac{\omega}{(s+\alpha)^2+\omega^2}$ | $e^{-\alpha t}\sin \omega t$ | $e^{-\alpha kT}\sin \omega kT$ | $\dfrac{z\,e^{-\alpha T}\sin \omega T}{z^2-2z\,e^{-\alpha T}\cos \omega T+e^{-2\alpha T}}$ |
+| $\dfrac{s+\alpha}{(s+\alpha)^2+\omega^2}$ | $e^{-\alpha t}\cos \omega t$ | $e^{-\alpha kT}\cos \omega kT$ | $\dfrac{z^2-z\,e^{-\alpha T}\cos \omega T}{z^2-2z\,e^{-\alpha T}\cos \omega T+e^{-2\alpha T}}$ |
+
+**符號說明**：「—」代表這一列沒有對應的連續時間 $E(s)$——$\delta(k-n)$ 是在 z 域直接定義的純離散延遲運算（見第二節「平移定理」），並非某個連續訊號取樣後才出現的結果，因此沒有 s 域對應項。
 
 > **與後文簡寫記號的關係**：本章其餘例題（例 2.8、第五、六節的反 z 轉換）常直接寫 $a^k\to\dfrac{z}{z-a}$、$ka^k\to\dfrac{az}{(z-a)^2}$、$\sin ak\to\dfrac{z\sin a}{z^2-2z\cos a+1}$ 這類「無 $T$」的簡化式。它們不是另一組公式，而是把上表中的 $e^{-\alpha T}$（或 $\omega T$）整體重新命名為一個符號 $a$（或角度 $a$）——數學上完全等價，只是省略了 $T$ 以方便書寫，在單純處理離散序列（不追問其連續時間來源）時很常見。但只要是**由 s 域訊號取樣而來**（如下面「由 s 域函數求 z 轉換」與例 2.9），就必須把 $T$ 明確寫出來，不能省略，因為 $T$ 會直接決定極點位置 $e^{-\alpha T}$ 在 z 平面上的實際數值。
 
@@ -428,6 +430,78 @@ Ez = tf(numz, denomz, T)
 **函數介紹：`conv(a, b)`**——計算兩個多項式係數向量的**摺積**（convolution），數學上摺積等於多項式相乘。這裡 `conv(numzz, [1 0])` 就是把 `numzz` 這個多項式乘上 $z$（因為 `[1 0]` 代表多項式 $1\cdot z + 0 = z$）。
 
 **函數介紹：`tf(num, den, T)`**——與連續時間 `tf(num, den)` 用法相同，只是多了第三個參數 `T`：當提供取樣週期 `T` 時，MATLAB 會建立一個**離散時間**轉移函數模型（自變數為 $z$ 而非 $s$）。
+
+**把這個例子的數字實際帶入，逐一看每個變數長什麼樣**：
+
+`Es = tf(num, denom)` 顯示連續時間轉移函數：
+
+```text
+Es =
+     s^2 + 4 s + 3
+  -------------------
+  s^3 + 6 s^2 + 8 s
+
+Continuous-time transfer function.
+```
+
+`[r, p, k] = residue(num, denom)`——這就是手算「求 $K_0,K_1,K_2$」的自動化版本：
+
+```text
+r =
+    0.3750
+    0.2500
+    0.3750
+
+p =
+        0
+   -2.0000
+   -4.0000
+
+k =
+   []   （空的：分子階數 2 < 分母階數 3，沒有多項式直接項）
+```
+
+> **對照手算結果**：`r(1)=0.375` 配 `p(1)=0`，正是 $K_0=0.375$（極點在 $s=0$）；`r(2)=0.25` 配 `p(2)=-2`，是 $K_1=0.25$（極點在 $s=-2$）；`r(3)=0.375` 配 `p(3)=-4`，是 $K_2=0.375$（極點在 $s=-4$）——三個數字與本節第一步手算完全一致。（不同 MATLAB 版本回傳的**列順序**可能不同，但每一組「留數配極點」的數值配對是固定的，順序調換不影響最終結果。）
+
+`for i=1:n-1; pz(i)=exp(p(i)*T); end`（$T=0.1$）把每個 s 域極點映射成對應的 z 域極點：
+
+```text
+pz =
+    1.0000    0.8187    0.6703
+```
+
+（依序對應 $e^{0\times0.1}=1$、$e^{-2\times0.1}=e^{-0.2}=0.8187$、$e^{-4\times0.1}=e^{-0.4}=0.6703$——這正是本節「查表」用到的 $e^{-aT}$。）
+
+`[numzz, denomz] = residue(r, pz, k)`——用同一組留數 `r`、但換成 z 域極點 `pz`，反推合併回一個多項式除以多項式：
+
+```text
+numzz =
+    1.0000   -1.6580    0.6804
+
+denomz =
+    1.0000   -2.4891    2.0379   -0.5488
+```
+
+`numz = conv(numzz, [1 0])`（乘上一個 $z$，因為查表結果 $\frac{z}{z-e^{-aT}}$ 分子都帶一個 $z$）：
+
+```text
+numz =
+    1.0000   -1.6580    0.6804         0
+```
+
+`Ez = tf(numz, denomz, T)` 得到最終的離散轉移函數：
+
+```text
+Ez =
+  z^3 - 1.658 z^2 + 0.6804 z
+  ---------------------------------
+  z^3 - 2.489 z^2 + 2.038 z - 0.5488
+
+Sample time: 0.1 seconds
+Discrete-time transfer function.
+```
+
+跟本節第二步手算通分後的 $E(z)=\dfrac{z^3-1.658z^2+0.6804z}{z^3-2.489z^2+2.038z-0.5488}$ 一模一樣——手算部分分式與 MATLAB `residue()` 這條路徑，殊途同歸。
 
 **MATLAB 作法二：先反拉普拉斯回到時域，再對 $t=kT$ 取 z 轉換**
 

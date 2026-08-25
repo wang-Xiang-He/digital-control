@@ -181,6 +181,29 @@ ${bodyHtml}
 </html>`;
 }
 
+// KaTeX renders "\ne"/"\neq" by overlaying a private-use-area glyph (U+E020, its
+// internal "\@not" slash symbol) on top of "=". On some Windows + Traditional/Simplified
+// Chinese configurations, Chromium's font fallback substitutes a wrong CJK glyph for
+// that PUA codepoint even though the KaTeX font itself defines it correctly — the
+// symptom is "≠" rendering as a garbled Chinese-looking character. Swapping the PUA
+// character for a plain "/" sidesteps the buggy substitution entirely: it's an
+// ordinary ASCII character with no font-fallback ambiguity, and KaTeX's zero-width
+// overlay positioning still lines it up on top of the following "=" correctly.
+async function fixNotEqualGlyph(page) {
+  await page.evaluate(() => {
+    const BROKEN_CHAR = String.fromCharCode(0xe020);
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let n;
+    while ((n = walker.nextNode())) {
+      if (n.nodeValue.indexOf(BROKEN_CHAR) !== -1) nodes.push(n);
+    }
+    nodes.forEach((node) => {
+      node.nodeValue = node.nodeValue.split(BROKEN_CHAR).join('/');
+    });
+  });
+}
+
 // KaTeX renders formulas at their natural width; a display equation with several
 // fraction terms (e.g. K1/(τs+1) + K2/(τs+1) + K3/(τs+1)) easily exceeds the printable
 // page width. `overflow-x` has no effect on paper (there's no scrollbar), so anything
@@ -219,28 +242,49 @@ async function convertOne(md, browser, mdPath) {
 
   const pdfPath = path.join(path.dirname(mdPath), `${title}.pdf`);
 
-  const page = await browser.newPage();
+  const fileUrl = 'file:///' + tmpHtmlPath.replace(/\\/g, '/');
+  const MAX_ATTEMPTS = 3;
+  let lastErr;
+
   try {
-    await page.setViewport({ width: PAGE_CONTENT_WIDTH_PX, height: 1400 });
-    await page.goto('file:///' + tmpHtmlPath.replace(/\\/g, '/'), { waitUntil: 'networkidle0' });
-    await shrinkOverflowingMath(page);
-    await page.pdf({
-      path: pdfPath,
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: `${PDF_MARGIN_MM.top}mm`,
-        bottom: `${PDF_MARGIN_MM.bottom}mm`,
-        left: `${PDF_MARGIN_MM.left}mm`,
-        right: `${PDF_MARGIN_MM.right}mm`,
-      },
-    });
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      const page = await browser.newPage();
+      try {
+        await page.setViewport({ width: PAGE_CONTENT_WIDTH_PX, height: 1400 });
+        // Font loading over file:// can occasionally stall well past Puppeteer's
+        // default 30s navigation timeout on this machine; give it more room and
+        // silently retry on a fresh page rather than failing the whole file.
+        await page.goto(fileUrl, { waitUntil: 'networkidle0', timeout: 60000 });
+        await fixNotEqualGlyph(page);
+        await shrinkOverflowingMath(page);
+        await page.pdf({
+          path: pdfPath,
+          format: 'A4',
+          printBackground: true,
+          // page.pdf() has its own `timeout` (defaults to Puppeteer's general 30s
+          // default-timeout setting) that is entirely separate from both the
+          // navigation timeout above and the browser's protocolTimeout — this is
+          // the one that was actually firing "Timed out after waiting 30000ms" on
+          // longer, math-heavy documents.
+          timeout: 120000,
+          margin: {
+            top: `${PDF_MARGIN_MM.top}mm`,
+            bottom: `${PDF_MARGIN_MM.bottom}mm`,
+            left: `${PDF_MARGIN_MM.left}mm`,
+            right: `${PDF_MARGIN_MM.right}mm`,
+          },
+        });
+        return pdfPath;
+      } catch (err) {
+        lastErr = err;
+      } finally {
+        await page.close();
+      }
+    }
+    throw lastErr;
   } finally {
-    await page.close();
     fs.unlinkSync(tmpHtmlPath);
   }
-
-  return pdfPath;
 }
 
 async function main() {
@@ -266,7 +310,12 @@ async function main() {
   console.log(`準備轉換 ${targets.length} 個檔案...`);
 
   const executablePath = findEdge();
-  const browser = await puppeteer.launch({ executablePath, headless: 'new' });
+  // protocolTimeout governs every individual CDP command Puppeteer issues, including
+  // Page.printToPDF — independent of page.goto's own navigation timeout. Its default
+  // (30s in some versions) can be too tight for a long, math-heavy document, which is
+  // what was actually causing "Timed out after waiting 30000ms" even after the
+  // per-file retry loop and a longer navigation timeout were added.
+  const browser = await puppeteer.launch({ executablePath, headless: 'new', protocolTimeout: 180000 });
   const md = buildMarkdownRenderer();
 
   let ok = 0;
@@ -292,6 +341,7 @@ module.exports = {
   buildMarkdownRenderer,
   renderHtml,
   shrinkOverflowingMath,
+  fixNotEqualGlyph,
   findEdge,
   PAGE_CONTENT_WIDTH_PX,
 };
