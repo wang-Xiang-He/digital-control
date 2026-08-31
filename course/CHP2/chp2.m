@@ -7,23 +7,35 @@
 
 clear; clc;
 
-% 若在 Octave 環境執行，請取消下方兩行的註解：
-% pkg load control;
-% pkg load symbolic;
+% 若在 MATLAB 環境執行，請把下面三行 pkg load 註解掉（MATLAB 內建這些工具箱）。
+pkg load control;
+pkg load symbolic;
+pkg load signal;     % ss2tf 在 Octave 屬於 signal 套件（MATLAB 放在 Control System Toolbox）
+
+% 本檔需要同目錄下的兩個輔助函式檔（Octave 的 symbolic 套件缺少的功能）：
+%   iztrans.m    ── 反 z 轉換（套件到 3.2.2 都沒有實作）
+%   ztrans_cf.m  ── z 轉換的閉合形式（套件的 ztrans 常只回傳未求和的 Sum）
+% 完整說明見同目錄的 TOOLS.md。
+% 下面兩行把本檔所在目錄加入 load path，這樣不論從哪個工作目錄執行都找得到。
+this_dir = fileparts(mfilename('fullpath'));
+if ~isempty(this_dir), addpath(this_dir); end
 
 %% ========================================================================
 %% 2.3 z 轉換的定義（例 2.2, 2.3）
 %% ========================================================================
 syms k a T z
 
-Ez_step = ztrans(1^k)                       % 例 2.2：e(k)=1 -> z/(z-1)
-Ez_exp  = ztrans(exp(-a*k*T))                % 例 2.3：e(k)=a^(kT) 形式 -> z/(z-exp(-a*T))
+% 註：Octave 的 ztrans 只會回傳未求和的 Sum/Piecewise（SymPy 判斷不出 |底數/z|<1
+%     是否成立，這無法用 assume 解決）。ztrans_cf 會取收斂域內的閉合形式。
+%     在 MATLAB 則把 ztrans_cf 改回內建的 ztrans 即可，引數慣例相同。
+Ez_step = ztrans_cf(sym(1)^k, k, z)         % 例 2.2：e(k)=1 -> z/(z-1)
+Ez_exp  = ztrans_cf(exp(-a*k*T), k, z)      % 例 2.3：e(k)=a^(kT) 形式 -> z/(z-exp(-a*T))
 
 %% ========================================================================
 %% 2.4 z 轉換的性質（例 2.6：複數平移定理）
 %% ========================================================================
 ekT = (k*T)*exp(a*k*T);
-Ez_complex_shift = ztrans(ekT)               % (T*z*exp(T*a))/(z - exp(T*a))^2
+Ez_complex_shift = ztrans_cf(ekT, k, z)      % (T*z*exp(T*a))/(z - exp(T*a))^2
 
 %% ========================================================================
 %% 2.5 由 s 域求 z 轉換（例 2.9）
@@ -46,11 +58,18 @@ Ez_from_s = tf(numz, denomz, T)          % 應為 (z^3-1.658z^2+0.6804z)/(z^3-2.
 
 % 另一種做法：先反拉普拉斯回到時域，代入 t=kT，再取 z 轉換
 syms s t
+Ts = sym(1)/10;                  % 用符號 1/10，不要用 double 0.1（否則會有浮點轉 sym 警告）
 Es_sym = (s^2+4*s+3)/(s^3+6*s^2+8*s);
-et = ilaplace(Es_sym);
-ekT2 = subs(et, t, k*T);
-Ez_alt = ztrans(ekT2);
+et   = ilaplace(Es_sym, s, t);   % 必須明確指定 s、t；單引數的 ilaplace 會自建一個帶假設的 t，
+                                 % 跟 syms t 不是同一個符號，會讓下一行的 subs 無聲失效
+ekT2 = subs(et, t, k*Ts);        % 代入 t = kT
+Ez_alt = ztrans_cf(ekT2, k, z);  % 對數列取 z 轉換（閉合形式）
 pretty(Ez_alt)
+
+% 驗證：正規化後的係數應與上面方法一的 Ez_from_s 完全相同
+[na, da] = numden(Ez_alt);
+disp('分子係數：'); ca = double(coeffs(expand(na), z, 'all')); disp(ca / ca(1));
+disp('分母係數：'); cb = double(coeffs(expand(da), z, 'all')); disp(cb / cb(1));
 
 %% ========================================================================
 %% 2.6 差分方程式的解法（例 2.10：逐次代入法）
