@@ -8,7 +8,8 @@
 |---|---|
 | `iztrans.m` | 反 z 轉換。Octave 的 symbolic 套件到 3.2.2 都沒實作 `iztrans` |
 | `ztrans_cf.m` | z 轉換的**閉合形式**。套件的 `ztrans` 常常只回傳未求和的 `Sum` |
-| `sym_magic.py` | Jupyter 裡把符號運算式用 **LaTeX** 渲染（`%sym` / `%%sym`） |
+| `sym_magic.py` | Jupyter 裡把運算結果用 **LaTeX** 渲染（`%sym` / `%%sym`） |
+| `to_latex.m` | 把 sym／數值矩陣／`tf` 模型轉成 LaTeX 字串，供上面那個 magic 使用 |
 
 ---
 
@@ -134,12 +135,35 @@ roc
 $$\frac{z\left(z - a^{T}\cos(Tb)\right)}{a^{2T} - 2a^{T}z\cos(Tb) + z^{2}}
 \qquad\qquad \frac{a^{T}}{|z|} < 1$$
 
-也可以用 line magic 混在一般 cell 裡：
+也可以用 line magic，但**必須是 cell 的第一行**：
 
-```matlab
-Ez = ztrans_cf(exp(-a*k*T), k, z);
+```
 %sym Ez
 ```
+
+### 3.4 `%sym` 吃什麼
+
+參數可以是變數名，也可以是**任意 Octave 運算式**。底層走 `to_latex.m`，支援三種型別：
+
+| 型別 | 處理方式 | 例 |
+|---|---|---|
+| `sym` | 直接 `latex()` | `%sym Ez` |
+| 數值（矩陣／向量／純量，可含複數） | 轉 `sym` 再取 LaTeX。全整數保持精確，否則用 `vpa` 顯示小數 | `%sym A_ccf`、`%sym eig(A)` |
+| `lti`（`tf`、`ss`） | `tfdata` 取分子分母，`poly2sym` 組成有理式。連續用 $s$、離散用 $z$ | `%sym Gz28` |
+
+```
+%%sym
+A*M - M*LAMBDA
+Phi(k1+k2) - Phi(k1)*Phi(k2)
+```
+
+> 為什麼需要 `to_latex.m`：symbolic 套件的 `latex()` **只吃 `sym`**。
+> 直接對數值矩陣或 `tf` 物件呼叫會失敗，所以本章的矩陣、轉移函數範例
+> 原本無法渲染。`to_latex` 補上這兩種型別的轉換。
+>
+> 另外 `sym(1.35)` 會變成 $rac{27}{20}$（分數），所以非整數一律走 `vpa`；
+> 但 `vpa` 又會把整數印成 `1.0`，混在矩陣裡很雜，最後再用 `regexprep`
+> 把落單的 `.0` 清掉（有 lookahead 保護，不會誤傷 `1.05` 或 `10^{-16}`）。
 
 > `%%sym` 是 **cell magic**，整格都會被它接管，不會執行 Octave 程式碼，
 > 所以計算和顯示要分成兩格。`%sym` 是 line magic，可以混用。
@@ -240,7 +264,8 @@ ztrans_cf(1^k, z, k)           % k/(k - 1)           ❌ 對 z 求和了，垃�
 
 ```matlab
 test iztrans      % PASSES 6 out of 6 tests
-test ztrans_cf    % PASSES 7 out of 7 tests
+test ztrans_cf    % PASSES 8 out of 8 tests
+test to_latex     % PASSES 9 out of 9 tests
 ```
 
 `ztrans_cf` 的測試逐條比對課本 z 轉換表：$1$、$e^{-akT}$、$kTe^{akT}$、
