@@ -29,7 +29,7 @@ $ppSaveAsPDF = 32  # PpSaveAsFileType.ppSaveAsPDF
 Write-Host "Scanning for .ppt / .pptx files under: $Path"
 
 $files = Get-ChildItem -Path $Path -Recurse -Include *.ppt, *.pptx -File |
-    Where-Object { $_.Name -notlike '~$*' }
+Where-Object { $_.Name -notlike '~$*' }
 
 if (-not $files) {
     Write-Host "No .ppt/.pptx files found."
@@ -75,3 +75,6 @@ finally {
 
 Write-Host ""
 Write-Host "Done. Converted: $converted, Skipped: $skipped, Failed: $failed"
+
+#powershell -ExecutionPolicy Bypass -File "course\tools\ppt2pdf\convert.ps1" -Force
+# powershell -ExecutionPolicy Bypass -File "course\tools\ppt2pdf\convert.ps1" -Path "course\CHP3"
